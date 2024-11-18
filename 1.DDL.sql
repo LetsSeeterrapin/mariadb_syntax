@@ -32,7 +32,7 @@ describe author;
 show full culumns from author;
 
 -- 테이블 생성명령문 조회
-show create table author;
+show create table author; 
 
 -- post 테이블 신규생성(id, title, content, author_id) *
 create table post(id int primary key, title varchar(255), content varchar(255), author_id int not null, foreign key(athor_id) references author(id));
@@ -43,18 +43,22 @@ show index from author;
 -- alter문 : 테이블의 구조를 변경
 -- 테이블의 이름변경
 alter table post rename posts;
+
 -- 테이블 컬럼 추가 *
 alter table author add column age int;
+
 -- 테이블 컬럼 삭제
 alter table author drop column age;
+
 -- 테이블 컬럼명 변경
 alter table post change column content contents varchar(100);
+
 --테이블 컬럼 타입과 제약조건 변경 => 덮어쓰기 됨에 유의(안붙이면 nullable이 됨)*
 alter table author modify column email varchar(100) not null;
 
 
-
 -- 실습 : author 테이블에 address컬럼 추가. varchar 255
 alter table author add column address varchar(100);
+
 -- 실습 : post 테이블에 title은 not null로 변경, contents 3000자로 변경
 alter table post modify column title varchar(100) not null, modify column contents varchar(3000);
