@@ -41,4 +41,4 @@ BEGIN
     insert into post(title, contents, author_id) values(titleinput, contentsinput, idInput);
     commit;
 END//
-DELIMITER ;
+DELIMITER;
