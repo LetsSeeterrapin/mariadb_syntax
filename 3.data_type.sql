@@ -76,4 +76,3 @@ select date_format(created_time, '%H:%i:%s') from post;
 
 -- 현재 시간
 select now();
-

@@ -34,7 +34,3 @@ commit;
 
 --아래 코드는 터미널에서 실행
 select post_count from author where id = 1 lock in share mode;
-
-
-
-

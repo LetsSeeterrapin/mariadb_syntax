@@ -48,3 +48,55 @@ select email, (select count(*) from post where author_id=a.id) 'count of post' f
 
 -- from절 안에 서브쿼리
 select a.name from (select * from author) as a;
+
+-- 없어진 기록 찾기
+-- 서브쿼리
+
+-- join
+SELECT O.ANIMAL_ID, O.NAME FROM ANIMAL_OUTS O LEFT JOIN ANIMAL_INS I ON I.ANIMAL_ID=O.ANIMAL_ID WHERE I.ANIMAL_ID IS NULL;
+
+-- 집계함수
+-- null은 count에서 제외
+select count(password) from author;
+select sum(price) from post;
+select avg(price)from post;
+-- 소수점 n+1번쨰자리에서 반올림해서 n번째까지 조회
+select round(avg(price), n) from post;
+
+-- group by 그룹화된 데이터를 하나의 행(row)처럼 취급.
+-- author_id로 그룹핑 하였으면, 그외의 컬럼을 조회하는 것은 적절치않음.
+select author_id from post group by author_id;
+-- group by와 집계함수
+-- 알래 쿼리에서 *은 그룹화된 데이터내에서의 개수
+select author_id, count(*) from post group by author_id;
+select author_id, count(*), sum(price) from post group by author_id;
+
+-- author의 email과 author별로 본인이 쓴 글의 개수를 출력
+-- join과 group by, 집계함수 활용한 글의 개수 출력
+select email, (select count(*) from post where author_id=a.id) from author a;                        -- 서브쿼리를 사용
+select a.email, count(author_id) from author a left join post p on a.id=p.author_id group by a.id;   -- join 사용
+
+-- where와 group by
+-- 연도별 post 글의 개수 출력, 연도가 null인 값은 제외
+select date_format(created_time, '%Y') year, count(*) from post p where created_time is not null group by year;
+
+-- 자동차 종류별 특정 옵션이 포함된 자동차 수 구하기
+SELECT CAR_TYPE, COUNT(*) CARS FROM CAR_RENTAL_COMPANY_CAR C 
+WHERE OPTIONS LIKE '%열선시트%' OR OPTIONS LIKE '%가죽시트%' OR OPTIONS LIKE '%통풍시트%' GROUP BY C.CAR_TYPE ORDER BY CAR_TYPE ASC;
+-- 입양 시각 구하기
+SELECT DATE_FORMAT(DATETIME, '%H') HOUR, COUNT(*) COUNT FROM ANIMAL_OUTS 
+WHERE DATE_FORMAT(DATETIME, '%H:%i') >= '09' AND DATE_FORMAT(DATETIME, '%H:%i') < '19:59' GROUP BY HOUR ORDER BY HOUR ASC;
+
+-- 글을 2개이상 쓴사랑에 대한 정보조회
+select author_id from post group by author_id having count(*) >= 2;
+select author_id, count(*) count from post group by author_id having count >= 2;
+
+-- 동명 동물 수 찾기
+SELECT NAME, COUNT(*) COUNT FROM ANIMAL_INS GROUP BY NAME HAVING COUNT(NAME) >= 2 ORDER BY NAME ASC;
+
+-- 다중열 group by
+-- post에서 작성자별로 만든 제목의 개수를 출력하시오.
+select author_id, title, count(*) from post group by author_id, title;
+
+-- 재구매가 일어난 상품과 회원리스트 구하기
+SELECT USER_ID, PRODUCT_ID FROM ONLINE_SALE GROUP BY USER_ID, PRODUCT_ID HAVING COUNT(*) >= 2 ORDER BY USER_ID, PRODUCT_ID DESC;
