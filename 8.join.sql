@@ -67,7 +67,7 @@ select round(avg(price), n) from post;
 -- author_id로 그룹핑 하였으면, 그외의 컬럼을 조회하는 것은 적절치않음.
 select author_id from post group by author_id;
 -- group by와 집계함수
--- 알래 쿼리에서 *은 그룹화된 데이터내에서의 개수
+-- 아래 쿼리에서 *은 그룹화된 데이터내에서의 개수
 select author_id, count(*) from post group by author_id;
 select author_id, count(*), sum(price) from post group by author_id;
 

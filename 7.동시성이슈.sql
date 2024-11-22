@@ -6,7 +6,7 @@
 
 
 -- red committed에서 발생할 수 있는 phantom read(또는 non-repeated read) 실습
--- 아래 코드는 워크벤ㅊ치에서 실행
+-- 아래 코드는 워크벤치에서 실행
 start transaction;
 select count(*) from author;
 do sleep(15);
