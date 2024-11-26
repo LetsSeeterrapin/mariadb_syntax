@@ -25,10 +25,3 @@ sudo apt install git
 git clone 레포지토리 주소
 
 # mariadb 덤프파일 복원
-
-#
-
-#
-
-
-
