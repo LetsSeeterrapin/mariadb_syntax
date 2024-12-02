@@ -106,3 +106,88 @@ begin
     end while;
     end
 // delimiter ;
+
+ -- 여기부터 팀프 프로시저
+delimiter //
+create procedure 회원가입(in inputName varchar(255), in inputPersonal_id varchar(255), 
+in inputPhone_number varchar(255), in inputEmail varchar(255), in inputSex enum('남','여'), in inputCouponname, in inputDiscount, 
+in inputCpdescribe)
+begin
+    declare userId bigint;
+    declare
+    insert into user as U(name, personal_id, phone_number, email, sex) values (inputName, inputPersonal_id, inputPhone_number, inputEmail, inputSex);
+    insert into coupon as C(name, discount, cp_describe) values(inputCouponname, inputDiscount, inputCpdescribe);
+    insert into coupon_list(user_id, coupon_id, expire_time) values(U, C, );
+    
+end
+// delimiter ;
+
+
+
+delimiter //
+create procedure 쿠폰생성(in count int, in inputName varchar(255), in inputDiscount varchar(255), in inputDescribe varchar(255))
+begin
+    declare countValue int default 0;
+    while countValue<count Do
+        
+    -- post 테이블에 insert
+    insert into coupon(name, discount, describe) values(inputName, inputDiscount, inputDescribe);
+    select id into postId from post order by id desc limit 1;
+    select id into authorId from author where email= inputEmail;
+    -- author_post 테이블 insert :author_id, post_id
+    insert into author_post(author_id, post_id) values(authorId, postId);
+        set countValue = countValue+1;
+    end while;
+    end
+// delimiter ;
+
+
+delimiter //
+create procedure
+
+
+
+end
+// delimiter ;
+
+
+delimiter //
+create procedure
+
+
+
+end
+// delimiter ;
+
+
+
+
+delimiter //
+create procedure
+
+
+
+end
+// delimiter ;
+
+
+
+
+delimiter //
+create procedure
+
+
+
+end
+// delimiter ;
+
+
+
+
+delimiter //
+create procedure
+
+
+
+end
+// delimiter ;
