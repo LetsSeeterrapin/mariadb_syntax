@@ -108,6 +108,19 @@ begin
 // delimiter ;
 
  -- 여기부터 팀프 프로시저
+ -- 
+ delimiter //
+create procedure 보유쿠폰 조회(in inputUserid bigint)
+begin
+
+select adddate(expire_time, interval 3 month) from coupon_list where user.id = inputUserid;
+
+
+end
+// delimiter ;
+
+
+
 delimiter //
 create procedure 회원가입(in inputName varchar(255), in inputPersonal_id varchar(255), 
 in inputPhone_number varchar(255), in inputEmail varchar(255), in inputSex enum('남','여'), in inputCouponname, in inputDiscount, 
@@ -115,12 +128,14 @@ in inputCpdescribe)
 begin
     declare userId bigint;
     declare
+    select expire_time into expireTime from coupon_list
     insert into user as U(name, personal_id, phone_number, email, sex) values (inputName, inputPersonal_id, inputPhone_number, inputEmail, inputSex);
     insert into coupon as C(name, discount, cp_describe) values(inputCouponname, inputDiscount, inputCpdescribe);
     insert into coupon_list(user_id, coupon_id, expire_time) values(U, C, );
     
 end
 // delimiter ;
+
 
 
 
@@ -187,6 +202,18 @@ end
 delimiter //
 create procedure
 
+
+
+end
+// delimiter ;
+
+
+ delimiter //
+create procedure 보유쿠폰조회3(in inputUserid bigint)
+begin
+
+select u.name, c.name, adddate(expire_time, interval 3 month) 
+from user u, coupon c, coupon_list cl where u.id = inputUserid;
 
 
 end
