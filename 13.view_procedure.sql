@@ -157,64 +157,272 @@ begin
 // delimiter ;
 
 
-delimiter //
-create procedure
 
 
 
+
+
+DELIMITER $$
+
+CREATE PROCEDURE 쿠폰다운로드1(IN p_user_id BIGINT, IN p_coupon_id BIGINT)
+BEGIN
+    DECLARE coupon_exist INT;
+
+    -- 쿠폰 존재 여부 체크
+    SELECT COUNT(*) INTO coupon_exist
+    FROM coupon
+    WHERE id = p_coupon_id;
+
+    IF coupon_exist = 0 THEN
+        -- 쿠폰이 존재하지 않으면 에러 메시지 반환
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'The coupon does not exist.';
+    ELSE
+        -- 이미 해당 유저가 이 쿠폰을 보유하고 있는지 확인
+        IF EXISTS (SELECT 1 FROM coupon_list WHERE user_id = p_user_id AND coupon_id = p_coupon_id) THEN
+            -- 이미 보유한 쿠폰이라면 에러 메시지 반환
+            SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'You already own this coupon.';
+        ELSE
+            -- 쿠폰을 coupon_list 테이블에 추가하여 유저가 쿠폰을 다운받도록 처리
+            INSERT INTO coupon_list (user_id, coupon_id, created_time)
+            VALUES (p_user_id, p_coupon_id, CURRENT_TIMESTAMP);
+
+            -- 쿠폰 다운로드 성공 메시지
+            SELECT 'Coupon downloaded successfully.' AS message;
+        END IF;
+    END IF;
+END$$
+
+DELIMITER ;
+
+
+
+
+
+
+
+
+--회원가입 완료(쿠폰발급)**
+DELIMITER $$
+
+CREATE PROCEDURE 회원가입(
+    IN 사용자이름 VARCHAR(255),
+    IN 주민번호 VARCHAR(255),
+    IN 전화번호 VARCHAR(255),
+    IN 이메일 VARCHAR(255),
+    IN 성별 ENUM('남', '여')
+)
+BEGIN
+    INSERT INTO user (name, personal_id, phone_number, email, sex, level, created_time, delete_user)
+    VALUES (사용자이름, 주민번호, 전화번호, 이메일, 성별, 'Bronze', CURRENT_TIMESTAMP(), 0);
+    
+    SET @user_id = LAST_INSERT_ID();
+    
+    
+    SET @coupon_id = 1; 
+    
+    INSERT INTO coupon_list (user_id, coupon_id, created_time, expire_time, usable)
+    VALUES (@user_id, @coupon_id, CURRENT_TIMESTAMP(), DATE_ADD(NOW(), INTERVAL 7 DAY), 1); 
+    
+    SELECT @user_id AS user_id, @coupon_id AS coupon_id;
+    
+END$$
+
+DELIMITER ;
+
+
+-- 리뷰작성(결제한 사람만)**
+DELIMITER $$
+
+CREATE PROCEDURE 리뷰작성(
+    IN 사용자id BIGINT,       
+    IN 숙소id BIGINT,
+    IN 결제id BIGINT, 
+    IN 주제 VARCHAR(255),
+    IN 내용 TEXT,               
+    IN 별점 INT,                   
+    IN 사진첨부 VARCHAR(255)            
+)
+BEGIN
+    DECLARE payment_exists INT;
+    
+    SELECT COUNT(*) INTO payment_exists
+    FROM payment p
+    WHERE p.reservation_id IN (SELECT r.id FROM reservation r WHERE r.user_id = 사용자id)
+    AND p.id = 결제id;
+    
+    IF payment_exists = 0 THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = '미결제 고객은 이용할 수 없습니다.';
+    ELSE
+        INSERT INTO review (accommodation_id, payment_id, title, content, star, photo, created_time)
+        VALUES (숙소id, 결제id, 주제, 내용, 별점, 사진첨부, CURRENT_TIMESTAMP());
+        
+        SELECT '작성이 완료되었습니다!' AS message;
+    END IF;
+END$$
+
+DELIMITER ;
+
+--내리뷰확인
+DELIMITER $$
+
+CREATE PROCEDURE 내가쓴리뷰조회(IN 사용자id BIGINT)
+BEGIN
+    SELECT 
+        r.id AS review_id,
+        a.name AS accommodation_name,
+        a.type AS accommodation_type,
+        r.title AS review_title,
+        r.content AS review_content,
+        r.star AS review_star,
+        r.photo AS review_photo,
+        r.created_time AS review_created_time
+    FROM 
+        review r
+    JOIN 
+        accommodation a ON r.accommodation_id = a.id
+    WHERE 
+        r.payment_id IN (SELECT p.id FROM payment p WHERE p.reservation_id IN 
+                        (SELECT r.id FROM reservation r WHERE r.user_id = 사용자id))
+    ORDER BY 
+        r.created_time DESC;
+    
+END$$
+
+DELIMITER ;
+
+-- 유저정보조회
+DELIMITER $$
+
+CREATE PROCEDURE 유저정보조회(IN 사용자id BIGINT)
+BEGIN
+    SELECT 
+        id AS user_id,
+        name,
+        personal_id,
+        phone_number,
+        email,
+        sex,
+        level,
+        created_time,
+        delete_user
+    FROM 
+        user
+    WHERE 
+        id = 사용자id;
+END$$
+
+DELIMITER ;
+
+
+--쿠폰등록
+DELIMITER $$
+
+CREATE PROCEDURE 새쿠폰등록(
+    IN 쿠폰이름 VARCHAR(255),         
+    IN 할인금액 VARCHAR(255),         
+    IN 할인내용 VARCHAR(255)       
+)
+BEGIN
+    INSERT INTO coupon (name, discount, cp_describe, update_time)
+    VALUES (쿠폰이름, 할인금액, 할인내용, CURRENT_TIMESTAMP());
+    
+    SELECT '쿠폰 등록이 완료되었습니다.' AS message;
+END$$
+
+DELIMITER ;
+
+
+
+--쿠폰조회시 만료기간지났으면 사용불가처리
+DELIMITER $$
+
+CREATE PROCEDURE 쿠폰조회(IN 사용자id BIGINT)
+BEGIN
+    SELECT 
+        u.name AS user_name,           
+        c.id AS coupon_id,          
+        c.name AS coupon_name,      
+        c.discount AS coupon_discount, 
+        c.cp_describe AS coupon_description, 
+        cl.created_time AS coupon_created_time, 
+        cl.expire_time AS coupon_expire_time,  
+        CASE
+            WHEN cl.expire_time < CURRENT_TIMESTAMP THEN '사용불가' 
+            ELSE DATE_FORMAT(cl.expire_time, '%Y-%m-%d')  
+        END AS coupon_status
+    FROM 
+        coupon_list cl
+    JOIN 
+        coupon c ON cl.coupon_id = c.id
+    JOIN 
+        user u ON cl.user_id = u.id
+    WHERE 
+        cl.user_id = 사용자id
+    ORDER BY 
+        cl.created_time DESC;  
+END$$
+
+DELIMITER ;
+
+-- 쿠폰다운로드
+DELIMITER $$
+
+CREATE PROCEDURE 쿠폰다운로드(IN 사용자id BIGINT, IN 쿠폰id BIGINT)
+BEGIN
+    DECLARE coupon_exist INT;
+
+    
+    SELECT COUNT(*) INTO coupon_exist
+    FROM coupon
+    WHERE id = 쿠폰id;
+
+    IF coupon_exist = 0 THEN
+        
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'The coupon does not exist.';
+    ELSE
+       
+        IF EXISTS (SELECT 1 FROM coupon_list WHERE user_id = 사용자id AND coupon_id = 쿠폰id) THEN
+          
+            SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'You already own this coupon.';
+        ELSE
+           
+            INSERT INTO coupon_list (user_id, coupon_id, created_time)
+            VALUES (사용자id, 쿠폰id, CURRENT_TIMESTAMP);
+
+            SELECT 'Coupon downloaded successfully.' AS message;
+        END IF;
+    END IF;
+END$$
+
+DELIMITER ;
+
+
+
+
+
+
+
+
+-- 유저등급조회
+ delimiter //
+create procedure 유저등급조회(in inputUserid bigint)
+begin
+
+select u.name, u.level 
+from user u where u.id = inputUserid;
 end
 // delimiter ;
 
-
-delimiter //
-create procedure
-
-
-
-end
-// delimiter ;
-
-
-
-
-delimiter //
-create procedure
-
-
-
-end
-// delimiter ;
-
-
-
-
-delimiter //
-create procedure
-
-
-
-end
-// delimiter ;
-
-
-
-
-delimiter //
-create procedure
-
-
-
-end
-// delimiter ;
 
 
  delimiter //
 create procedure 보유쿠폰조회3(in inputUserid bigint)
 begin
 
-select u.name, c.name, adddate(expire_time, interval 3 month) 
+select u.name, c.name, c.discount, c.cp_discribe, cl.usable, cl.adddate(expire_time, interval 3 month) 
 from user u, coupon c, coupon_list cl where u.id = inputUserid;
-
+if datetime > expire_time then 
+update coupon_list set usable = 0 where coupon_list.id = inputUserid
 
 end
 // delimiter ;
